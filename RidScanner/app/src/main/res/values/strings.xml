@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RID 扫描器</string>
+    <string name="title_devices">附近 RID 设备</string>
+    <string name="action_scan_on">开始扫描</string>
+    <string name="action_scan_off">停止扫描</string>
+    <string name="empty_hint">正在搜索附近的 Open Drone ID 广播…\n（需要手机与飞机蓝牙、Wi-Fi 都开启并在接收范围内）</string>
+</resources>
