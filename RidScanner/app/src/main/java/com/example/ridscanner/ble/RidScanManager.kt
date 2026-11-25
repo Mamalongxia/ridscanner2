@@ -68,10 +68,10 @@ class RidScanManager(context: Context) {
         record.lastSeen = System.currentTimeMillis()
         SharedStore.upsert(record)
 
-        notify()
+        emitUpdate()
     }
 
-    private fun notify() {
+    private fun emitUpdate() {
         handler.post {
             onUpdate?.invoke(records.values.sortedByDescending { it.lastSeen })
         }
