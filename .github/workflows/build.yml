@@ -8,9 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: RidScanner
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,13 +18,30 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept SDK licenses & install platform/build-tools
+      - name: Install Android SDK (manual)
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          set -e
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mv cmdline-tools latest
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Locate project root
+        id: loc
+        run: |
+          if [ -f settings.gradle ]; then ROOT=.;
+          elif [ -f RidScanner/settings.gradle ]; then ROOT=RidScanner;
+          else ROOT=$(find . -maxdepth 2 -name settings.gradle -printf '%h' | head -1); fi
+          echo "root=$ROOT" >> $GITHUB_OUTPUT
+          echo "Using project root: $ROOT"
+          ls -la "$ROOT"
 
       - name: Install Gradle 8.9
         run: |
@@ -36,11 +50,12 @@ jobs:
           echo "$GITHUB_WORKSPACE/gradle-8.9/bin" >> $GITHUB_PATH
 
       - name: Build debug APK
+        working-directory: ${{ steps.loc.outputs.root }}
         run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: RidScanner-debug-apk
-          path: RidScanner/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.loc.outputs.root }}/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
